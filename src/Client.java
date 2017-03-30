@@ -12,6 +12,7 @@ import java.util.*;
 import java.security.*;
 import javax.crypto.spec.*;
 import javax.crypto.*;
+import javax.xml.bind.DatatypeConverter;
 
 public class Client
 {
@@ -24,13 +25,13 @@ public class Client
 		//	clientID, secretKey, and encryptionKey instead of all of them
 		byte[] sendMessage = new byte[1024], receiveMessage = new byte[1024];
 		Scanner input;
-		String str, clientID;
+		String str = null, clientID = null; 
 		String[] tokens;
 		ArrayList<String> clientIDs = new ArrayList<String>();
 		ArrayList<String> secretKeys = new ArrayList<String>();
 		ArrayList<SecretKeySpec> encryptKeys = new ArrayList<SecretKeySpec>();
 		int port = Integer.valueOf(args[0]);
-		int clientIndex = -1;
+		int clientIndex = -1, randCookie = -1, tcpPort = -1;
 		
 		//read text file and store ids in an array and secret keys in another array
 		try
@@ -53,20 +54,12 @@ public class Client
 			e.printStackTrace();
 		}
 		
-		/*
-		 * user will type in "log on (clientID)" [caps sensitive]
-		 * string will be parsed to get the clientID
-		 * send a udp message as "HELLO (clientID)"
-		 * server should either send back "CHALLENGE (rand)" or "AUTH_FAIL"
-		 * ...etc 
-		 */
-		
 		input = new Scanner(System.in);
-		System.out.print("Hello. Please log on with your client ID (case sensitive): ");
+		System.out.print("Hello. Please log on with your client ID: ");
 		str = input.nextLine();
-		if(!str.startsWith("log on"))
+		if(!(str.startsWith("log on") || str.startsWith("LOG ON")))
 		{
-			System.out.println("ERROR. You must enter \"log on YOUR_CLIENTID\"");
+			System.out.println("ERROR. You must enter \"log on <YOUR_CLIENTID>\"");
 			input.close();
 			return;
 		}
@@ -74,7 +67,7 @@ public class Client
 		try
 		{
 			DatagramSocket clientSocket = new DatagramSocket();
-			DatagramPacket receivePacket;
+			DatagramPacket receivePacket, sendPacket;
 			InetAddress IPAddress = InetAddress.getByName("localhost");
 			byte[] data;
 			MessageDigest md;
@@ -82,12 +75,44 @@ public class Client
 			//tokenize the "log on CLIENTID"
 			tokens = str.split(" ");
 			clientID = tokens[2];
-			//prepare to send back the protocol "HELLO CLIENTID"
-			sendMessage = new String("HELLO " + clientID).getBytes();
-			DatagramPacket sendPacket = new DatagramPacket(sendMessage, sendMessage.length, IPAddress, port);
+			sendMessage = new String("log on " + clientID).getBytes();
+			sendPacket = new DatagramPacket(sendMessage, sendMessage.length, IPAddress, port);
+			//send the "log on <clientID>" to the initial main UDP server
 			clientSocket.send(sendPacket);
 			
-			//may need to get rid of the while loop here
+			//****
+			System.out.println("sending message to main server");
+			
+			receivePacket = new DatagramPacket(receiveMessage, receiveMessage.length);
+			//reset the byte array to flush out any old data
+			receiveMessage = new byte[1024];
+			clientSocket.receive(receivePacket);
+			
+			//****
+			System.out.println("received message from main server");
+			
+			//trims any padded junk-text from the 1024 byte receive packet
+			data = new byte[receivePacket.getLength()];
+			System.arraycopy(receivePacket.getData(), receivePacket.getOffset(), data, 0, receivePacket.getLength());
+			tokens = new String(data).split(" ");
+			
+			//the port number that the main UDP server sends back to us will be
+			//	the UDP connection we use from now on
+			if(tokens[0].equals("port"))
+			{
+				port = Integer.parseInt(tokens[1]);
+			}
+			else
+			{
+				System.out.println("ERROR Unexpected message from Main UDP server");
+				System.exit(-100);
+			}
+			
+			//send the HELLO protocol
+			sendMessage = new String("HELLO " + clientID).getBytes();
+			sendPacket = new DatagramPacket(sendMessage, sendMessage.length, IPAddress, port);
+			clientSocket.send(sendPacket);
+			
 			while(true)
 			{
 				//receive the message from server
@@ -101,14 +126,21 @@ public class Client
 				System.arraycopy(receivePacket.getData(), receivePacket.getOffset(), data, 0, receivePacket.getLength());
 				tokens = new String(data).split(" ");
 				
-				if(tokens[0].equals("CHALLENGE"))
+				if(tokens[0].equals("SUBSCRIBER_FAIL"))
 				{
-					//grab the 2nd token (rand)
-					//iterate through the clientID arraylist
-					//check if clientID is in there
-					//if so, set it to clientIndex and then exit loop
-					//access the clientIndex's secret key and concat w/ rand
-					//get the hash and send back the hash
+					System.out.println("ERROR The client ID you used was not on our subscriber's list");
+					System.exit(-200);
+				}
+				
+				else if(tokens[0].equals("CHALLENGE"))
+				{
+					/*grab the 2nd token (rand)
+					iterate through the clientID arraylist
+					check if clientID is in there
+					if so, set it to clientIndex and then exit loop
+					access the clientIndex's secret key and concat w/ rand
+					get the hash and send back the hash*/
+					
 					boolean flag = false;
 					for(int i = 0; i < clientIDs.size(); i++)
 					{
@@ -151,39 +183,32 @@ public class Client
 					//Unexpected error
 					else
 					{
-						System.out.println("ERROR encountered");
+						System.out.println("ERROR encountered: " + new String(data));
+						clientSocket.close();
+						input.close();
 						System.exit(-3);
 					}
 					
 				}
 				
-				//NOTE: might have to relocated into the else conditional
-//				//	because it might be encrypted first
-				else if(tokens[0].equals("AUTH_SUCCESS"))
-				{
-					
-				}
-				
+				//Authentication failed
 				else if(tokens[0].equals("AUTH_FAIL"))
 				{
-					
-				}
-				
-				//NOTE: might have to relocate into the else conditional
-				//	because it might be encrypted first
-				else if(tokens[0].equals("CONNECTED"))
-				{
-					//Might need to close UDP socket and start establishing TCP connection
-					//input.close();
-					//clientSocket.close();
-					
-					//exit loop and then open a TCP connection
+					System.out.println("Authentication has failed with client ID " + clientID);
+					input.close();
+					//This might stop the UDP server (most likely not)
+					clientSocket.close();
+					return;
 				}
 				
 				//something expected went wrong that I might be aware of
 				else if(tokens[0].equals("ERROR"))
 				{
-					//output the error, and then system.exit(-1)
+					//output the error message, and then system.exit(-1)
+					System.out.println(new String(data));
+					input.close();
+					clientSocket.close();
+					System.exit(-1);
 				}
 				
 				//something unexpected went wrong
@@ -192,18 +217,108 @@ public class Client
 				//it is an ecnrypted message
 				else
 				{
-					//decrypt the message, and then create more conditionals for other protocols
-					//have a final else state in here for the unrecognized text
-					//	for unrecog. text, output that there is an unexpected error, and then system.exit(-2)
-					
-					//*****TESTING PURPOSES*****
+					//****
 					//using data because it is the trimmed version of receivePacket
 					String mess = decrypt(data, encryptKeys.get(clientIndex));
 					System.out.println("decrypt attempt: " + mess);
+					
+					tokens = decrypt(data, encryptKeys.get(clientIndex)).split(" ");
+					
+					
+					if(tokens[0].equals("AUTH_SUCCESS"))
+					{
+						randCookie = Integer.parseInt(tokens[1]);
+						tcpPort = Integer.parseInt(tokens[2]);
+						//break out of loop to join a new loop for TCP
+						clientSocket.close();
+						input.close();
+						break;
+						
+					}
+					//Unexpected error, display data string and exit with code -2
+					else
+					{
+						System.out.println("Unexpected error: " + new String(data));
+						input.close();
+						clientSocket.close();
+						System.exit(-2);
+					}
+					
 				}
 			}
 		} 
 		catch (java.io.IOException|java.security.NoSuchAlgorithmException e)
+		{
+			e.printStackTrace();
+		}
+		
+		//NOTE: for TCP, we will encryt/decrypt messages using the prepareOutMessage/prepareInMessages respectively
+		try
+		{
+			//****
+			System.out.println("client " + clientID + " starting TCP connection with port " + tcpPort);
+			
+			//NOTE: May need to thread.sleep for a second to make sure the tcp server is running first
+			InetAddress IPAddress = InetAddress.getByName("localhost");
+			Socket clientTCP = new Socket(IPAddress, tcpPort);
+			java.io.PrintWriter out = new java.io.PrintWriter(clientTCP.getOutputStream(), true);
+			java.io.BufferedReader in = new java.io.BufferedReader(
+					new java.io.InputStreamReader(clientTCP.getInputStream()));
+			String messageOut = null, messageIn = null;
+			byte[] data = null;
+			
+			
+			//****
+			System.out.println("Attempting to connect to tcp server with clientindex " + clientIndex);
+			
+			//Now, we encrypt a CONNECT message and send it to the TCP server
+			//TCP server should receive it and send back a CONNECTED message
+			messageOut = "CONNECT " + randCookie;
+			messageOut = prepareOutMessage(data, messageOut, clientIndex, encryptKeys);
+			
+			//****
+			System.out.println("CONNECT encrypted is " + messageOut);
+			System.out.println("CONNECT decrypted is " + prepareInMessage(data, messageOut, clientIndex, encryptKeys));
+			
+			out.println(messageOut);
+			
+			while(true)
+			{
+				messageIn = in.readLine();
+				messageIn = prepareInMessage(data, messageIn, clientIndex, encryptKeys);
+				tokens = messageIn.split(" ");
+
+				if(tokens[0].equals("CONNECTED"))
+				{
+					//****
+					System.out.println("Client is connected to TCP server");
+					clientTCP.close();
+					out.close();
+					in.close();
+					break;
+				}
+				
+				else if(tokens[0].equals("ERROR"))
+				{
+					System.out.println(messageIn);
+					out.close();
+					in.close();
+					clientTCP.close();
+					break;
+				}
+				
+				//Unrecognized error
+				else
+				{
+					System.out.println(messageIn);
+					out.close();
+					in.close();
+					clientTCP.close();
+					break;
+				}
+			}
+		}
+		catch(java.io.IOException e)
 		{
 			e.printStackTrace();
 		}
@@ -218,7 +333,7 @@ public class Client
 		{
 			Cipher aesCipher = Cipher.getInstance("AES");
 			aesCipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
-			encrypted = aesCipher.doFinal(message.getBytes());
+			encrypted = aesCipher.doFinal(message.getBytes("UTF-8"));
 		}
 		catch(Exception e)
 		{
@@ -243,5 +358,21 @@ public class Client
 			e.printStackTrace();
 		}
 		return new String(decrypted);
+	}
+	
+	//Used for TCP decryption
+	public static String prepareInMessage(byte[] data, String messageIn, int clientIndex, ArrayList<SecretKeySpec> encryptKeys)
+	{
+		data = DatatypeConverter.parseBase64Binary(messageIn);
+		messageIn = decrypt(data, encryptKeys.get(clientIndex));
+		return messageIn;
+	}
+	
+	//Used for TCP encryption
+	public static String prepareOutMessage(byte[] data, String messageOut, int clientIndex, ArrayList<SecretKeySpec> encryptKeys)
+	{
+		data = encrypt(messageOut, encryptKeys.get(clientIndex));
+		messageOut = DatatypeConverter.printBase64Binary(data);
+		return messageOut;
 	}
 }
