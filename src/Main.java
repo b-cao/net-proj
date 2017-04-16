@@ -69,12 +69,14 @@ public class Main
 		try
 		{
 			serverSocket = new DatagramSocket(serverPort);
-			
+			System.out.println("Ready...");
 			while(true)
 			{
+				System.out.println("Reveing messages...");
 				receivePacket = new DatagramPacket(receiveMessage, receiveMessage.length);
 				//reset the byte array to flush out any old data
 				receiveMessage = new byte[1024];
+				System.out.println("Waiting...");
 				serverSocket.receive(receivePacket);
 				
 				//****

@@ -76,12 +76,13 @@ public class Client
 			tokens = str.split(" ");
 			clientID = tokens[2];
 			sendMessage = new String("log on " + clientID).getBytes();
-			sendPacket = new DatagramPacket(sendMessage, sendMessage.length, IPAddress, port);
+			System.out.println("sending message to main server, Message: "+ sendMessage + "IPAddress: "+IPAddress+" port: "+port);
+			sendPacket = new DatagramPacket(sendMessage, sendMessage.length, IPAddress, 4444);
 			//send the "log on <clientID>" to the initial main UDP server
 			clientSocket.send(sendPacket);
 			
 			//****
-			System.out.println("sending message to main server");
+			System.out.println("Message send to main server");
 			
 			receivePacket = new DatagramPacket(receiveMessage, receiveMessage.length);
 			//reset the byte array to flush out any old data
@@ -292,10 +293,6 @@ public class Client
 				{
 					//****
 					System.out.println("Client is connected to TCP server");
-					clientTCP.close();
-					out.close();
-					in.close();
-					break;
 				}
 				
 				else if(tokens[0].equals("ERROR"))
