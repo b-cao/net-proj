@@ -36,6 +36,7 @@ public class Main
 		InetAddress IPAddress;
 		DatagramPacket sendPacket, receivePacket;
 		DatagramSocket serverSocket;
+                Thread t[];
 		
 		//Reads a subscriptions.txt file where each row contains "<clientID> <secretkey>"
 		try
@@ -69,12 +70,14 @@ public class Main
 		try
 		{
 			serverSocket = new DatagramSocket(serverPort);
-			
+			System.out.println("Ready...");
 			while(true)
 			{
+				System.out.println("Reveing messages...");
 				receivePacket = new DatagramPacket(receiveMessage, receiveMessage.length);
 				//reset the byte array to flush out any old data
 				receiveMessage = new byte[1024];
+				System.out.println("Waiting...");
 				serverSocket.receive(receivePacket);
 				
 				//****
@@ -104,9 +107,12 @@ public class Main
 					
 					//Creates an object of MainWorker that will service each client
 					//	and then calls it as a thread
-					MainWorker mw = new MainWorker(clientPort, IPAddress, clientIndex); 
-					Thread t = new Thread(mw);
-					t.start();
+                                        
+                                        //creates an array of threads to hold each client
+                                        t = new Thread[clientIDs.size()];
+					MainWorker mw = new MainWorker(clientPort, IPAddress, clientIndex, t); 
+					t[clientIndex] = new Thread(mw);
+					t[clientIndex].start();
 				}
 				//Client did not send "log on <clientID>"; send back error 
 				else
@@ -116,6 +122,7 @@ public class Main
 					sendPacket = new DatagramPacket(sendMessage, sendMessage.length, IPAddress, clientPort);
 					serverSocket.send(sendPacket);
 				}
+                                
 			}
 		}
 		catch(Exception e)
@@ -135,14 +142,16 @@ class MainWorker implements Runnable
 	//	will be used for each udp and tcp connection
 	static int udpPortNumbers = 6556;
 	static int tcpPortNumbers = 9000;
-	int tcpPort = -3, udpPort = -2, clientIndex = -1;
+	int tcpPort = -3, udpPort = -2, clientIndex = -1, numOfClients;
 	InetAddress IPAddress;
+        Thread[] threads;
 	
-	MainWorker(int p, InetAddress IP, int client)
+	MainWorker(int p, InetAddress IP, int client, Thread[] thread)
 	{
 		udpPort = p;
 		IPAddress = IP;
 		clientIndex = client;
+                threads = threads;
 	}
 	
 	public void run()

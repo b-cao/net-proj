@@ -7,6 +7,7 @@
  * B) Would we need multithreading?
  */
 
+import java.io.PrintStream;
 import java.net.*;
 import java.util.*;
 import java.security.*;
@@ -60,7 +61,7 @@ public class Client
 		if(!(str.startsWith("log on") || str.startsWith("LOG ON")))
 		{
 			System.out.println("ERROR. You must enter \"log on <YOUR_CLIENTID>\"");
-			input.close();
+			//input.close();
 			return;
 		}
 		
@@ -76,12 +77,13 @@ public class Client
 			tokens = str.split(" ");
 			clientID = tokens[2];
 			sendMessage = new String("log on " + clientID).getBytes();
-			sendPacket = new DatagramPacket(sendMessage, sendMessage.length, IPAddress, port);
+			System.out.println("sending message to main server, Message: "+ sendMessage + "IPAddress: "+IPAddress+" port: "+port);
+			sendPacket = new DatagramPacket(sendMessage, sendMessage.length, IPAddress, 4444);
 			//send the "log on <clientID>" to the initial main UDP server
 			clientSocket.send(sendPacket);
 			
 			//****
-			System.out.println("sending message to main server");
+			System.out.println("Message send to main server");
 			
 			receivePacket = new DatagramPacket(receiveMessage, receiveMessage.length);
 			//reset the byte array to flush out any old data
@@ -185,7 +187,7 @@ public class Client
 					{
 						System.out.println("ERROR encountered: " + new String(data));
 						clientSocket.close();
-						input.close();
+						//input.close();
 						System.exit(-3);
 					}
 					
@@ -195,7 +197,7 @@ public class Client
 				else if(tokens[0].equals("AUTH_FAIL"))
 				{
 					System.out.println("Authentication has failed with client ID " + clientID);
-					input.close();
+					//input.close();
 					//This might stop the UDP server (most likely not)
 					clientSocket.close();
 					return;
@@ -206,7 +208,7 @@ public class Client
 				{
 					//output the error message, and then system.exit(-1)
 					System.out.println(new String(data));
-					input.close();
+					//input.close();
 					clientSocket.close();
 					System.exit(-1);
 				}
@@ -231,7 +233,7 @@ public class Client
 						tcpPort = Integer.parseInt(tokens[2]);
 						//break out of loop to join a new loop for TCP
 						clientSocket.close();
-						input.close();
+						//input.close();
 						break;
 						
 					}
@@ -239,7 +241,7 @@ public class Client
 					else
 					{
 						System.out.println("Unexpected error: " + new String(data));
-						input.close();
+						//input.close();
 						clientSocket.close();
 						System.exit(-2);
 					}
@@ -287,15 +289,21 @@ public class Client
 				messageIn = in.readLine();
 				messageIn = prepareInMessage(data, messageIn, clientIndex, encryptKeys);
 				tokens = messageIn.split(" ");
+                                String requestedUser;
+                                
 
 				if(tokens[0].equals("CONNECTED"))
 				{
 					//****
 					System.out.println("Client is connected to TCP server");
-					clientTCP.close();
-					out.close();
-					in.close();
-					break;
+                                        input = new Scanner(System.in);
+                                        
+                                        //asks user to enter the client they wish to talk to
+                                        System.out.println("Please enter the user you want to chat with: ");
+                                        
+                                        //sends the requested client the user wants to chat with the tcpserver
+                                        requestedUser = input.nextLine();
+                                        out.println(requestedUser);
 				}
 				
 				else if(tokens[0].equals("ERROR"))
@@ -316,6 +324,7 @@ public class Client
 					clientTCP.close();
 					break;
 				}
+                                  
 			}
 		}
 		catch(java.io.IOException e)
