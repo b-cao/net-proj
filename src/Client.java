@@ -316,6 +316,7 @@ public class Client
                                 			
                                 			out.println(messageOut);
                                 			}
+                                			//test to receive messages.....maybe?
                                 			else{
                                 				while(true){
                                 					messageIn = in.readLine();

@@ -63,11 +63,12 @@ public class TcpServer
 								System.out.println("Received decrypted message " + messageIn);
 								tokens = messageIn.split(" ");
 
-								//CHAT_REQUEST, gets port for requested user. Needs to establish a socket.
 								//reqIDport == -1 means the user is not available
 								if(tokens[0].equals("CHAT_REQUEST")){
 									int reqIDPort = Main.TCPChatRequest(tokens[1]);
 									System.out.println(reqIDPort);
+									
+									//If a port number was returned, sets up client communication. NOT WORKING!!!!
 									if(reqIDPort != -1){
 										java.net.ServerSocket sender = new java.net.ServerSocket(5555);
 										java.net.Socket receiver = sender.accept();
