@@ -46,7 +46,16 @@ public class TcpServer
 					out.println(messageOut);
 
 					//****
-					System.out.println("TCP disconnecting");
+//					System.out.println("TCP disconnecting");
+//					client.close();
+//					server.close();
+//					break;
+				}
+				if(tokens[0].equals("CHAT_REQUEST")){
+					messageOut = new String("CHAT_REQUEST ACCEPTED");
+					messageOut = prepareOutMessage(data, messageOut, clientIndex);
+					out.println(messageOut);
+					System.out.println("TCP disconnecting under CHAT_REQUEST");
 					client.close();
 					server.close();
 					break;

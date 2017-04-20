@@ -60,7 +60,7 @@ public class Client
 		if(!(str.startsWith("log on") || str.startsWith("LOG ON")))
 		{
 			System.out.println("ERROR. You must enter \"log on <YOUR_CLIENTID>\"");
-			input.close();
+			//input.close();
 			return;
 		}
 		
@@ -185,7 +185,7 @@ public class Client
 					{
 						System.out.println("ERROR encountered: " + new String(data));
 						clientSocket.close();
-						input.close();
+						//input.close();
 						System.exit(-3);
 					}
 					
@@ -195,7 +195,7 @@ public class Client
 				else if(tokens[0].equals("AUTH_FAIL"))
 				{
 					System.out.println("Authentication has failed with client ID " + clientID);
-					input.close();
+					//input.close();
 					//This might stop the UDP server (most likely not)
 					clientSocket.close();
 					return;
@@ -206,7 +206,7 @@ public class Client
 				{
 					//output the error message, and then system.exit(-1)
 					System.out.println(new String(data));
-					input.close();
+					//input.close();
 					clientSocket.close();
 					System.exit(-1);
 				}
@@ -231,7 +231,7 @@ public class Client
 						tcpPort = Integer.parseInt(tokens[2]);
 						//break out of loop to join a new loop for TCP
 						clientSocket.close();
-						input.close();
+						//input.close();
 						break;
 						
 					}
@@ -239,7 +239,7 @@ public class Client
 					else
 					{
 						System.out.println("Unexpected error: " + new String(data));
-						input.close();
+						//input.close();
 						clientSocket.close();
 						System.exit(-2);
 					}
@@ -292,9 +292,9 @@ public class Client
 				{
 					//****
 					System.out.println("Client is connected to TCP server");
-					clientTCP.close();
-					out.close();
-					in.close();
+//					clientTCP.close();
+//					out.close();
+//					in.close();
 					break;
 				}
 				
@@ -316,6 +316,26 @@ public class Client
 					clientTCP.close();
 					break;
 				}
+			}
+
+			//begin sending message to TCP server
+//			String msg = input.nextLine();
+			//assume chat
+			Scanner input2 = new Scanner(System.in);
+			System.out.println("would you like to chat");
+			input2.nextLine();
+			//System.out.println(m);
+			messageOut = "CHATREQUEST ID3 " + randCookie;
+			messageOut = prepareOutMessage(data, messageOut, clientIndex, encryptKeys);
+			System.out.println("CHAT_REQUEST encrypted is " + messageOut);
+			System.out.println("CHAT_REQUEST decrypted is " + prepareInMessage(data, messageOut, clientIndex, encryptKeys));
+			//out.println(messageOut);
+			while(true){
+				messageIn = in.readLine();
+				messageIn = prepareInMessage(data, messageIn, clientIndex, encryptKeys);
+				System.out.println(messageIn);
+				System.out.println(" this came from chat");
+				break;
 			}
 		}
 		catch(java.io.IOException e)

@@ -27,6 +27,7 @@ public class Main
 	static ArrayList<String> authenHashes = new ArrayList<String>();
 	//Contains the secretkeys used for encryption
 	static ArrayList<SecretKeySpec> encryptKeys = new ArrayList<SecretKeySpec>();
+
 	
 	public static void main(String[] args)
 	{
@@ -175,6 +176,8 @@ class MainWorker implements Runnable
 		
 		//**NOTE: there is a possibility that a client may try to connect to
 		//	this TCP port before the TCP server has even started running
+
+		//TCP server is the only thing now,
 		TcpServer ts = new TcpServer();
 		ts.begin(tcpPort, clientIndex);
 	}
