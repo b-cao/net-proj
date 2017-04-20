@@ -1,6 +1,7 @@
 import javax.crypto.*;
 import javax.crypto.spec.*;
 import javax.xml.bind.DatatypeConverter;
+
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
 
@@ -10,9 +11,6 @@ public class TcpServer
 	{
 		int tcpPort = tcp, clientIndex = clientindex;
 		byte[] data = null;
-                
-                //holds boolean value to check if client is busy already in a chat
-               // boolean[] isBusy = new boolean[threads.length];
 		
 		try
 		{
@@ -49,6 +47,50 @@ public class TcpServer
 						messageOut = new String("CONNECTED");
 						messageOut = prepareOutMessage(data, messageOut, clientIndex);
 						out.println(messageOut);
+						
+						//Quick and dirty
+						ClientObject client = new ClientObject(Main.clientIDs.get(clientIndex),tcp,0);
+						Main.clients.add(client);
+						
+						while(true){
+							messageIn = in.readLine();
+							if(messageIn!= null){
+								System.out.println("Received encrypted message " + messageIn);
+
+								messageIn = prepareInMessage(data, messageIn, clientIndex);
+
+								//****
+								System.out.println("Received decrypted message " + messageIn);
+								tokens = messageIn.split(" ");
+
+								//CHAT_REQUEST, gets port for requested user. Needs to establish a socket.
+								//reqIDport == -1 means the user is not available
+								if(tokens[0].equals("CHAT_REQUEST")){
+									int reqIDPort = Main.TCPChatRequest(tokens[1]);
+									System.out.println(reqIDPort);
+									if(reqIDPort != -1){
+										java.net.ServerSocket sender = new java.net.ServerSocket(5555);
+										java.net.Socket receiver = sender.accept();
+
+										//in will read messages from the client
+										java.io.BufferedReader in1 = new java.io.BufferedReader(
+												new java.io.InputStreamReader(receiver.getInputStream()));
+
+										//out will send messages back to client
+										java.io.PrintWriter out2 = new java.io.PrintWriter(receiver.getOutputStream(), true);
+										
+										
+										messageOut = new String("CHAT_STARTED");
+										messageOut = prepareOutMessage(data, messageOut, clientIndex);
+										out2.println(messageOut);
+									}
+									if (reqIDPort == -1){
+										//messageOut = new String("UNREACHABLE " + tokens[1]);
+										//messageOut = prepareOutMessage(data, messageOut, clientIndex);
+									}
+								}
+							}
+						}
 
 						//****
 						//	System.out.println("TCP disconnecting");
@@ -64,7 +106,7 @@ public class TcpServer
 					}
                                         
                                         //recives client request to chat with different client
-                                        System.out.println("Reveing request to chat...");
+                                        System.out.println("Receiving request to chat...");
                                         requestedUser = in.readLine();
                                         //System.out.println("The user requested is: "+requestedUser);
                                         

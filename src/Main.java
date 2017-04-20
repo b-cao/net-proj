@@ -27,6 +27,8 @@ public class Main
 	static ArrayList<String> authenHashes = new ArrayList<String>();
 	//Contains the secretkeys used for encryption
 	static ArrayList<SecretKeySpec> encryptKeys = new ArrayList<SecretKeySpec>();
+	static ArrayList<ClientObject> clients = new ArrayList<ClientObject>();
+	static int sessionID = 0;
 	
 	public static void main(String[] args)
 	{
@@ -131,6 +133,21 @@ public class Main
 		}
 		
 	}
+	
+	//Used to get a port number for chat requests. Needs to check for activity.
+	public static int TCPChatRequest(String reqID){
+		int i = 0;
+
+		//Should get the port number of the requested user ID and return it
+		while(i < clients.size()){
+			if (clients.get(i).getID().equals(reqID) && clients.get(i).getSessionID() == 0){
+				clients.get(i).setSessionID(sessionID);
+				return clients.get(i).getPort();
+			}
+			i++;
+		}
+		return -1;
+	}
 }
 
 class MainWorker implements Runnable
@@ -187,4 +204,5 @@ class MainWorker implements Runnable
 		TcpServer ts = new TcpServer();
 		ts.begin(tcpPort, clientIndex);
 	}
+	
 }

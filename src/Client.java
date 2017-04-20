@@ -296,14 +296,35 @@ public class Client
 				{
 					//****
 					System.out.println("Client is connected to TCP server");
-                                        input = new Scanner(System.in);
+                                        while(true)
+                                        {
+                                        	//asks user to enter the client they wish to talk to
+                                        	System.out.println("Please enter your command: ");
                                         
-                                        //asks user to enter the client they wish to talk to
-                                        System.out.println("Please enter the user you want to chat with: ");
-                                        
-                                        //sends the requested client the user wants to chat with the tcpserver
-                                        requestedUser = input.nextLine();
-                                        out.println(requestedUser);
+                                        	//sends the requested client the user wants to chat with the tcpserver
+                                        	//Only does CHAT_REQUEST till fleshed out
+                                        	requestedUser = input.nextLine();
+                                        	tokens = requestedUser.split(" ");
+                                			clientID = tokens[0];
+                                			if (clientID.equals("ID1")){
+                                        	messageOut = "CHAT_REQUEST " + requestedUser;
+                                			messageOut = prepareOutMessage(data, messageOut, clientIndex, encryptKeys);
+                                			
+                                			//****
+                                			System.out.println("CHAT_REQUEST " + messageOut);
+                                			System.out.println("CHAT_REQUEST " + prepareInMessage(data, messageOut, clientIndex, encryptKeys));
+                                			
+                                			out.println(messageOut);
+                                			}
+                                			else{
+                                				while(true){
+                                					messageIn = in.readLine();
+                                					messageIn = prepareInMessage(data, messageIn, clientIndex, encryptKeys);
+                                					String testMessage = messageIn;
+                                					System.out.println(testMessage);		
+                                				}
+                                			}
+                                        }
 				}
 				
 				else if(tokens[0].equals("ERROR"))
