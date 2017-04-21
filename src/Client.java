@@ -7,6 +7,8 @@
  * B) Would we need multithreading?
  */
 
+import com.sun.corba.se.impl.encoding.CDRInputStream_1_2;
+
 import java.net.*;
 import java.util.*;
 import java.security.*;
@@ -318,24 +320,46 @@ public class Client
 				}
 			}
 
-			//begin sending message to TCP server
+			if(clientIndex == 1){
+				while(true){
+					System.out.println("WAITING FOR INCOMING MESSAGES");
+					messageIn = in.readLine();
+					messageIn = prepareInMessage(data, messageIn,clientIndex, encryptKeys);
+					if(messageIn.equals("CHAT_STARTED")){
+						System.out.println(messageIn);
+					}
+					else if(messageIn.equals("CHAT_ENDED")){
+						//chat ended, go back to normal state
+					}
+				}
+			}
+			else{
+
+				//begin sending message to TCP server
 //			String msg = input.nextLine();
-			//assume chat
-			Scanner input2 = new Scanner(System.in);
-			System.out.println("would you like to chat");
-			input2.nextLine();
-			//System.out.println(m);
-			messageOut = "CHATREQUEST ID3 " + randCookie;
-			messageOut = prepareOutMessage(data, messageOut, clientIndex, encryptKeys);
-			System.out.println("CHAT_REQUEST encrypted is " + messageOut);
-			System.out.println("CHAT_REQUEST decrypted is " + prepareInMessage(data, messageOut, clientIndex, encryptKeys));
-			//out.println(messageOut);
-			while(true){
-				messageIn = in.readLine();
-				messageIn = prepareInMessage(data, messageIn, clientIndex, encryptKeys);
-				System.out.println(messageIn);
-				System.out.println(" this came from chat");
-				break;
+				//assume chat
+				Scanner input2 = new Scanner(System.in);
+				System.out.println("ENTER THE USER YOU WOULD LIKE TO CHAT WITH: ");
+				input2.nextLine();
+				//System.out.println(m);
+				messageOut = "CHAT_REQUEST ID2 " + randCookie;
+				messageOut = prepareOutMessage(data, messageOut, clientIndex, encryptKeys);
+				out.println(messageOut);
+				System.out.println("CHAT_REQUEST encrypted is " + messageOut);
+				System.out.println("CHAT_REQUEST decrypted is " + prepareInMessage(data, messageOut, clientIndex, encryptKeys));
+				//out.println(messageOut);
+
+				//chat state
+				while(true){
+					messageIn = in.readLine();
+					messageIn = prepareInMessage(data, messageIn, clientIndex, encryptKeys);
+					System.out.println(messageIn);
+					System.out.println("PLESE ENTER MESSAGE");
+					String m = input2.nextLine();
+					messageOut = prepareOutMessage(data, m, clientIndex, encryptKeys);
+					out.println(messageOut);
+				}
+
 			}
 		}
 		catch(java.io.IOException e)

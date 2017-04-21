@@ -1,25 +1,38 @@
 import javax.crypto.*;
 import javax.crypto.spec.*;
 import javax.xml.bind.DatatypeConverter;
+import java.io.BufferedReader;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 public class TcpServer
 {
+    ServerSocket server;
+    Socket client;
+    BufferedReader in;
+    PrintWriter out;
+    int clientIndex;
 	public void begin(int tcp, int clientindex)
 	{
-		int tcpPort = tcp, clientIndex = clientindex;
+		int tcpPort = tcp;
+        clientIndex = clientindex;
 		byte[] data = null;
-		
+
+		//id, port, availability
+        ClientObject c = new ClientObject(Main.clientIDs.get(clientIndex), tcp, true);
+        Main.clientObjects.put(c.getID(), c);
 		try
 		{
-			java.net.ServerSocket server = new java.net.ServerSocket(tcpPort);
-			java.net.Socket client = server.accept();
+			server = new java.net.ServerSocket(tcpPort);
+			client = server.accept();
 
 			//in will read messages from the client
-			java.io.BufferedReader in = new java.io.BufferedReader(
+			in = new java.io.BufferedReader(
 					new java.io.InputStreamReader(client.getInputStream()));
 
 			//out will send messages back to client
-			java.io.PrintWriter out = new java.io.PrintWriter(client.getOutputStream(), true);
+			out = new java.io.PrintWriter(client.getOutputStream(), true);
 
 			String messageIn = null, messageOut = null;
 			String[] tokens;
@@ -51,14 +64,29 @@ public class TcpServer
 //					server.close();
 //					break;
 				}
-				if(tokens[0].equals("CHAT_REQUEST")){
-					messageOut = new String("CHAT_REQUEST ACCEPTED");
-					messageOut = prepareOutMessage(data, messageOut, clientIndex);
-					out.println(messageOut);
-					System.out.println("TCP disconnecting under CHAT_REQUEST");
-					client.close();
-					server.close();
-					break;
+				else if(tokens[0].equals("CHAT_REQUEST")){
+					//messageOut = new String("CHAT_REQUEST ACCEPTED");
+                    String rec = tokens[1]; //recipient
+
+                    if(checkClient(rec)){
+                        //can proceed with contact
+                        sendMessage("CHAT_STARTED", rec);
+                        messageOut = prepareOutMessage(data, "CHAT_STARTED", clientIndex);
+                        out.println(messageOut);
+                        while(true){
+                            messageIn = in.readLine();
+                            messageIn = prepareInMessage(data, messageIn, clientIndex);
+                            System.out.println("received first messsage client");
+                            sendMessage(messageIn, rec);
+                        }
+                    }
+
+//					messageOut = prepareOutMessage(data, messageOut, clientIndex);
+//					out.println(messageOut);
+////					System.out.println("TCP disconnecting under CHAT_REQUEST");
+//					client.close();
+//					server.close();
+//					break;
 				}
 				else
 				{
@@ -73,7 +101,20 @@ public class TcpServer
 			e.printStackTrace();
 		}
 	}
-	
+
+	boolean checkClient(String id){
+        return Main.clientObjects.get(id).isAvailable();
+    }
+
+	public void sendMessage(String message, String rec){
+        Main.tcpConns.get(rec).giveClientMessage(message);
+    }
+
+    public void giveClientMessage(String message){
+	    message = prepareOutMessage(null, message, clientIndex);
+        System.out.println("SENDING RECEIVED MESSAGE TO CLIENT");
+        out.println(message);
+    }
 	//AES encrypt
 	public byte[] encrypt(String message, SecretKeySpec secretKeySpec)
 	{

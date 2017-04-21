@@ -10,6 +10,8 @@
  * 	each connection has a unique socket (i.e. unique port).
  */
 
+import sun.rmi.transport.tcp.TCPConnection;
+
 import java.util.*;
 import java.net.*;
 import javax.crypto.spec.*;
@@ -27,6 +29,9 @@ public class Main
 	static ArrayList<String> authenHashes = new ArrayList<String>();
 	//Contains the secretkeys used for encryption
 	static ArrayList<SecretKeySpec> encryptKeys = new ArrayList<SecretKeySpec>();
+
+	static HashMap<String, TcpServer> tcpConns = new HashMap<>();
+	static HashMap<String, ClientObject> clientObjects = new HashMap<>();
 
 	
 	public static void main(String[] args)
@@ -179,6 +184,7 @@ class MainWorker implements Runnable
 
 		//TCP server is the only thing now,
 		TcpServer ts = new TcpServer();
+		Main.tcpConns.put(Main.clientIDs.get(clientIndex), ts);
 		ts.begin(tcpPort, clientIndex);
 	}
 }
