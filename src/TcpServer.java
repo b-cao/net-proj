@@ -18,6 +18,7 @@ public class TcpServer
 		int tcpPort = tcp;
         clientIndex = clientindex;
 		byte[] data = null;
+		String rec = null;
 
 		//id, port, availability
         ClientObject c = new ClientObject(Main.clientIDs.get(clientIndex), tcp, true);
@@ -66,21 +67,25 @@ public class TcpServer
 				}
 				else if(tokens[0].equals("CHAT_REQUEST")){
 					//messageOut = new String("CHAT_REQUEST ACCEPTED");
-                    String rec = tokens[1]; //recipient
+                    rec = tokens[1]; //recipient
 
                     if(checkClient(rec)){
                         //can proceed with contact
+                        Main.clientObjects.get(Main.clientIDs.get(clientIndex)).partner = rec;
+                        Main.clientObjects.get(rec).partner = Main.clientIDs.get(clientIndex);
                         sendMessage("CHAT_STARTED", rec);
                         messageOut = prepareOutMessage(data, "CHAT_STARTED", clientIndex);
                         out.println(messageOut);
-                        while(true){
-                            messageIn = in.readLine();
-                            messageIn = prepareInMessage(data, messageIn, clientIndex);
-                            System.out.println("received first messsage client");
-                            sendMessage(messageIn, rec);
-                        }
+//                        while(true){
+//                            //get A's message to B
+//                            messageIn = in.readLine();
+//                            //decrypt
+//                            messageIn = prepareInMessage(data, messageIn, clientIndex);
+//                            //System.out.println("received first messsage client");
+//                            //sending message from TCPA to TCPB
+//                            sendMessage(messageIn, rec);
+//                        }
                     }
-
 //					messageOut = prepareOutMessage(data, messageOut, clientIndex);
 //					out.println(messageOut);
 ////					System.out.println("TCP disconnecting under CHAT_REQUEST");
@@ -88,6 +93,14 @@ public class TcpServer
 //					server.close();
 //					break;
 				}
+				else if(tokens[0].equals("CHAT_STATE")){
+                    while(true){
+                        messageIn = in.readLine();
+                        messageIn = prepareInMessage(data, messageIn, clientindex);
+                        sendMessage(messageIn, Main.clientObjects.get(Main.clientIDs.get(clientIndex)).partner);
+                    }
+
+                }
 				else
 				{
 					messageOut = "ERROR Message not recognized from TCP";

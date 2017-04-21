@@ -9,6 +9,9 @@
 
 import com.sun.corba.se.impl.encoding.CDRInputStream_1_2;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.*;
 import java.util.*;
 import java.security.*;
@@ -20,7 +23,9 @@ public class Client
 {
 	/*NOTE: run this file with a port number argument
 	 * 		this is the port number of the server
+	 *
 	*/
+	//always check if someone has contacted u, if so enter chat state
 	public static void main(String[] args)
 	{
 		//may need to change it so that a client can only know its own
@@ -320,47 +325,111 @@ public class Client
 				}
 			}
 
-			if(clientIndex == 1){
-				while(true){
-					System.out.println("WAITING FOR INCOMING MESSAGES");
-					messageIn = in.readLine();
-					messageIn = prepareInMessage(data, messageIn,clientIndex, encryptKeys);
-					if(messageIn.equals("CHAT_STARTED")){
-						System.out.println(messageIn);
-					}
-					else if(messageIn.equals("CHAT_ENDED")){
-						//chat ended, go back to normal state
-					}
+			//BEGIN CHAT APP WITH CLIENT:
+
+			//I think I need "CHAT_STATE" in TCP server also,
+
+			while(true){
+				System.out.println("What would you like to do?");
+				System.out.println("1. Log off");
+				System.out.println("2. Chat with user");
+				System.out.println("3. Get message history");
+				System.out.println("4. Be available"); //to help waiting problem, if online, people can contact, can wait for TCP connection stream
+
+				Scanner userIn = new Scanner(System.in);
+				int choice = userIn.nextInt();
+				userIn.nextLine();
+				switch(choice){
+					case 1:
+						break;
+
+					case 2:
+						//chat with user, send chat request via TCP connection
+						System.out.println("Please enter user you would like to chat with");
+						String rec = userIn.nextLine();
+						messageOut = "CHAT_REQUEST " + rec + " " + randCookie;
+						messageOut = prepareOutMessage(data,messageOut, clientIndex, encryptKeys);
+						//enter chatting state?
+						out.println(messageOut);
+						messageIn = in.readLine();
+						messageIn = prepareInMessage(data, messageIn, clientIndex, encryptKeys);
+						tokens = messageIn.split(" ");
+						if(tokens[0].equals("CHAT_STARTED")){
+							messageOut = "CHAT_STATE 1" + randCookie;
+							messageOut = prepareOutMessage(data, messageOut, clientIndex, encryptKeys);
+							out.println(messageOut);
+							enterChatState(in, out, true, clientIndex, encryptKeys);
+						}
+						break;
+
+					case 3:
+						break;
+					case 4:
+						//want to wait
+						while(true){
+							messageIn = in.readLine(); //see what it says
+							messageIn = prepareInMessage(data, messageIn, clientIndex, encryptKeys);
+							tokens = messageIn.split(" ");
+
+							if(tokens[0].equals("CHAT_STARTED")){
+//								messageOut = "CHAT_STATE 0" + randCookie;
+//								messageOut = prepareOutMessage(data, messageOut, clientIndex, encryptKeys);
+//								out.println(messageOut);
+								messageOut = "CHAT_STATE 0 " + randCookie;
+								messageOut = prepareOutMessage(data, messageOut, clientIndex, encryptKeys);
+								out.println(messageOut);
+								enterChatState(in, out, false, clientIndex, encryptKeys);
+							}
+							break;
+						}
+						break;
+					default:
+						break;
 				}
-			}
-			else{
-
-				//begin sending message to TCP server
-//			String msg = input.nextLine();
-				//assume chat
-				Scanner input2 = new Scanner(System.in);
-				System.out.println("ENTER THE USER YOU WOULD LIKE TO CHAT WITH: ");
-				input2.nextLine();
-				//System.out.println(m);
-				messageOut = "CHAT_REQUEST ID2 " + randCookie;
-				messageOut = prepareOutMessage(data, messageOut, clientIndex, encryptKeys);
-				out.println(messageOut);
-				System.out.println("CHAT_REQUEST encrypted is " + messageOut);
-				System.out.println("CHAT_REQUEST decrypted is " + prepareInMessage(data, messageOut, clientIndex, encryptKeys));
-				//out.println(messageOut);
-
-				//chat state
-				while(true){
-					messageIn = in.readLine();
-					messageIn = prepareInMessage(data, messageIn, clientIndex, encryptKeys);
-					System.out.println(messageIn);
-					System.out.println("PLESE ENTER MESSAGE");
-					String m = input2.nextLine();
-					messageOut = prepareOutMessage(data, m, clientIndex, encryptKeys);
-					out.println(messageOut);
-				}
 
 			}
+
+//			if(clientIndex == 1){
+//				while(true){
+//					System.out.println("WAITING FOR INCOMING MESSAGES");
+//					messageIn = in.readLine();
+//					messageIn = prepareInMessage(data, messageIn,clientIndex, encryptKeys);
+//					if(messageIn.equals("CHAT_STARTED")){
+//						System.out.println(messageIn);
+//					}
+//					else if(messageIn.equals("CHAT_ENDED")){
+//						//chat ended, go back to normal state
+//					}
+//				}
+//			}
+//			else{
+//
+//				//begin sending message to TCP server
+////			String msg = input.nextLine();
+//				//assume chat
+//				Scanner input2 = new Scanner(System.in);
+//				System.out.println("ENTER THE USER YOU WOULD LIKE TO CHAT WITH: ");
+//				input2.nextLine();
+//				//System.out.println(m);
+//				messageOut = "CHAT_REQUEST ID2 " + randCookie;
+//				messageOut = prepareOutMessage(data, messageOut, clientIndex, encryptKeys);
+//				out.println(messageOut);
+//				System.out.println("CHAT_REQUEST encrypted is " + messageOut);
+//				System.out.println("CHAT_REQUEST decrypted is " + prepareInMessage(data, messageOut, clientIndex, encryptKeys));
+//				//out.println(messageOut);
+//
+//				//chat state
+//				while(true){
+//					messageIn = in.readLine();
+//					messageIn = prepareInMessage(data, messageIn, clientIndex, encryptKeys);
+//					System.out.println(messageIn);
+//					System.out.println("PLESE ENTER MESSAGE");
+//					String m = input2.nextLine();
+//					messageOut = prepareOutMessage(data, m, clientIndex, encryptKeys);
+//					out.println(messageOut);
+//				}
+
+//			}
 		}
 		catch(java.io.IOException e)
 		{
@@ -368,7 +437,45 @@ public class Client
 		}
 
 	}
-	
+
+	public static void enterChatState(BufferedReader in, PrintWriter out, boolean initiliazer, int clientIndex, ArrayList<SecretKeySpec> encryptKeys) throws IOException {
+		//in a state of send/receive messages from clients
+		//will CHAT_STATE protocol have reached us at this point?
+		String messageIn = null, messageOut = null;
+		Scanner input = new Scanner(System.in);
+		//this might be dumb, but restrict to send/receive
+		if(initiliazer){
+			//if started the chat, they go first
+			while(true){
+				System.out.println("Enter message: ");
+				messageOut = input.nextLine();
+				if(messageOut.equals("quit")){
+					return;
+				}
+				messageOut = prepareOutMessage(null, messageOut, clientIndex, encryptKeys);
+				out.println(messageOut);
+				messageIn = in.readLine();
+				messageIn = prepareInMessage(null, messageIn, clientIndex,encryptKeys);
+				System.out.println("Other Client: " + messageIn);
+			}
+		}
+		else{
+			while(true){
+				messageIn = in.readLine();
+				messageIn = prepareInMessage(null, messageIn, clientIndex, encryptKeys);
+				System.out.println("Other Client: " + messageIn);
+				System.out.println("Enter message: ");
+				messageOut = input.nextLine();
+				if(messageOut.equals("quit")){
+					return;
+				}
+				messageOut = prepareOutMessage(null, messageOut, clientIndex, encryptKeys);
+				out.println(messageOut);
+
+			}
+		}
+
+	}
 	//AES encryption
 	public static byte[] encrypt(String message, SecretKeySpec secretKeySpec)
 	{

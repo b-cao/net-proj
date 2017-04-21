@@ -3,6 +3,7 @@ public class ClientObject {
     public String ID;
     public int port;
     public boolean available;
+    public String partner;
     //public int sessionID;
 
     ClientObject(String id, int p, boolean a){
