@@ -118,11 +118,13 @@ public class TcpServer {
                             //need to send message to other client
                             System.out.println("CLIENT " + clientID + "WANTS TO END");
                             sendMessage("END_NOTIF", otherClient, clientID);
+                            Main.clientObjects.get(clientID).available = true;
                             break;
                         }
                         else if(tokens[0].equals("END_NOTIF")){
                             //we have been disconnected
                             System.out.println("OTHER CLIENT ENDED CHAT");
+                            Main.clientObjects.get(clientID).available = true;
                             break;
                         }
                         //what we are sending
