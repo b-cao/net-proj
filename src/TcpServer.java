@@ -19,6 +19,9 @@ public class TcpServer {
     static int session = 0;
     //String is other client, the map is all sessions of chats we have had, identified by sessionID
     //HashMap<String, HashMap<Integer, chatSession>> chatHistory = new HashMap<>();
+
+    //Change boolean available whenever user logs off
+    //check if object exists before creating in TCPserver
     HashMap<String, HashMap<Integer, chatSession>> chatHistory = new HashMap<>();
 
     public void begin(int tcp, int clientindex) {
@@ -30,9 +33,14 @@ public class TcpServer {
         int sessionID;
 
         //id, port, availability
-        ClientObject c = new ClientObject(Main.clientIDs.get(clientIndex), tcp, true);
-        Main.clientObjects.put(c.getID(), c);
         clientID = Main.clientIDs.get(clientIndex);
+        //check if object exists, if not create a new one
+        if(!Main.clientObjects.containsKey(clientID)){
+            ClientObject c = new ClientObject(clientID, tcp, true);
+            Main.clientObjects.put(c.getID(), c);
+            //clientID = Main.clientIDs.get(clientIndex);
+        }
+
         try {
             server = new java.net.ServerSocket(tcpPort);
             client = server.accept();
@@ -146,6 +154,7 @@ public class TcpServer {
                 }
                 else if (tokens[0].equals("LOG_OFF")) {
                     System.out.println("CLIENT ON PORT " + tcp + " IS DISCONNECTING");
+                    Main.clientObjects.get(clientID).available = false;
                     client.close();
                     server.close();
                 }

@@ -10,8 +10,6 @@
  * 	each connection has a unique socket (i.e. unique port).
  */
 
-import sun.rmi.transport.tcp.TCPConnection;
-
 import java.util.*;
 import java.net.*;
 import javax.crypto.spec.*;
