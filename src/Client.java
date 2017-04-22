@@ -7,7 +7,6 @@
  * B) Would we need multithreading?
  */
 
-import com.sun.corba.se.impl.encoding.CDRInputStream_1_2;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -18,6 +17,8 @@ import java.security.*;
 import javax.crypto.spec.*;
 import javax.crypto.*;
 import javax.xml.bind.DatatypeConverter;
+
+//WARNING: SESSION IDS ARE NOT MATCHING
 
 public class Client
 {
@@ -341,6 +342,12 @@ public class Client
 				userIn.nextLine();
 				switch(choice){
 					case 1:
+						messageOut = "END";
+						messageOut = prepareOutMessage(data, messageOut, clientIndex, encryptKeys);
+						out.println(messageOut);
+						clientTCP.close();
+						in.close();
+						out.close();
 						break;
 
 					case 2:
@@ -355,26 +362,45 @@ public class Client
 						messageIn = prepareInMessage(data, messageIn, clientIndex, encryptKeys);
 						tokens = messageIn.split(" ");
 						if(tokens[0].equals("CHAT_STARTED")){
+							System.out.println("CHAT STARTED");
 							messageOut = "CHAT_STATE 1" + randCookie;
 							messageOut = prepareOutMessage(data, messageOut, clientIndex, encryptKeys);
 							out.println(messageOut);
 							enterChatState(in, out, true, clientIndex, encryptKeys);
 						}
+						else if(tokens[0].equals("UNREACHABLE")){
+							System.out.println(rec + " IS UNABLE TO CHAT AT THIS TIME");
+						}
 						break;
 
 					case 3:
+						System.out.println("PLEASE ENTER NAME OF USER CHAT HISTORY");
+						String user = userIn.nextLine();
+						messageOut = "HISTORY_REQ " + user;
+						messageOut = prepareOutMessage(data, messageOut, clientIndex, encryptKeys);
+						out.println(messageOut);
+						System.out.println("CHAT HISTORY WITH " + user);
+						while(true){
+							//iterate through chat history, server should relay it back in strings
+							messageIn = in.readLine();
+							messageIn = prepareInMessage(data, messageIn, clientIndex, encryptKeys);
+							if(messageIn.equals("END")){
+								System.out.println("CHAT HISTORY WITH " + user + " COMPLETE");
+								break;
+							}
+							System.out.println(messageIn);
+						}
 						break;
 					case 4:
 						//want to wait
 						while(true){
+							System.out.println("Waiting for connection...");
 							messageIn = in.readLine(); //see what it says
 							messageIn = prepareInMessage(data, messageIn, clientIndex, encryptKeys);
 							tokens = messageIn.split(" ");
 
 							if(tokens[0].equals("CHAT_STARTED")){
-//								messageOut = "CHAT_STATE 0" + randCookie;
-//								messageOut = prepareOutMessage(data, messageOut, clientIndex, encryptKeys);
-//								out.println(messageOut);
+								System.out.println("CHAT_STARTED");
 								messageOut = "CHAT_STATE 0 " + randCookie;
 								messageOut = prepareOutMessage(data, messageOut, clientIndex, encryptKeys);
 								out.println(messageOut);
@@ -389,47 +415,6 @@ public class Client
 
 			}
 
-//			if(clientIndex == 1){
-//				while(true){
-//					System.out.println("WAITING FOR INCOMING MESSAGES");
-//					messageIn = in.readLine();
-//					messageIn = prepareInMessage(data, messageIn,clientIndex, encryptKeys);
-//					if(messageIn.equals("CHAT_STARTED")){
-//						System.out.println(messageIn);
-//					}
-//					else if(messageIn.equals("CHAT_ENDED")){
-//						//chat ended, go back to normal state
-//					}
-//				}
-//			}
-//			else{
-//
-//				//begin sending message to TCP server
-////			String msg = input.nextLine();
-//				//assume chat
-//				Scanner input2 = new Scanner(System.in);
-//				System.out.println("ENTER THE USER YOU WOULD LIKE TO CHAT WITH: ");
-//				input2.nextLine();
-//				//System.out.println(m);
-//				messageOut = "CHAT_REQUEST ID2 " + randCookie;
-//				messageOut = prepareOutMessage(data, messageOut, clientIndex, encryptKeys);
-//				out.println(messageOut);
-//				System.out.println("CHAT_REQUEST encrypted is " + messageOut);
-//				System.out.println("CHAT_REQUEST decrypted is " + prepareInMessage(data, messageOut, clientIndex, encryptKeys));
-//				//out.println(messageOut);
-//
-//				//chat state
-//				while(true){
-//					messageIn = in.readLine();
-//					messageIn = prepareInMessage(data, messageIn, clientIndex, encryptKeys);
-//					System.out.println(messageIn);
-//					System.out.println("PLESE ENTER MESSAGE");
-//					String m = input2.nextLine();
-//					messageOut = prepareOutMessage(data, m, clientIndex, encryptKeys);
-//					out.println(messageOut);
-//				}
-
-//			}
 		}
 		catch(java.io.IOException e)
 		{
@@ -450,12 +435,23 @@ public class Client
 				System.out.println("Enter message: ");
 				messageOut = input.nextLine();
 				if(messageOut.equals("quit")){
+					messageOut = "END_REQUEST ";
+					messageOut = prepareOutMessage(null, messageOut, clientIndex, encryptKeys);
+					out.println(messageOut);
 					return;
 				}
 				messageOut = prepareOutMessage(null, messageOut, clientIndex, encryptKeys);
 				out.println(messageOut);
 				messageIn = in.readLine();
 				messageIn = prepareInMessage(null, messageIn, clientIndex,encryptKeys);
+				if(messageIn.equals("END_NOTIF")){
+					System.out.println("Other client has terminated chat");
+					//need to tell our server we are done
+					messageOut = "END_NOTIF";
+					messageOut = prepareOutMessage(null, messageOut, clientIndex, encryptKeys);
+					out.println(messageOut);
+					return;
+				}
 				System.out.println("Other Client: " + messageIn);
 			}
 		}
@@ -463,10 +459,21 @@ public class Client
 			while(true){
 				messageIn = in.readLine();
 				messageIn = prepareInMessage(null, messageIn, clientIndex, encryptKeys);
+				if(messageIn.equals("END_NOTIF")){
+					System.out.println("Other client has terminated chat");
+					//NEED TO TELL OUR SERVER WE DONE
+					messageOut = "END_NOTIF";
+					messageOut = prepareOutMessage(null, messageOut, clientIndex, encryptKeys);
+					out.println(messageOut);
+					return;
+				}
 				System.out.println("Other Client: " + messageIn);
 				System.out.println("Enter message: ");
 				messageOut = input.nextLine();
 				if(messageOut.equals("quit")){
+					messageOut = "END_REQUEST ";
+					messageOut = prepareOutMessage(null, messageOut, clientIndex, encryptKeys);
+					out.println(messageOut);
 					return;
 				}
 				messageOut = prepareOutMessage(null, messageOut, clientIndex, encryptKeys);

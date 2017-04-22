@@ -4,7 +4,7 @@ public class ClientObject {
     public int port;
     public boolean available;
     public String partner;
-    //public int sessionID;
+    public int sessionID;
 
     ClientObject(String id, int p, boolean a){
         ID = id;
@@ -31,6 +31,7 @@ public class ClientObject {
     public boolean isAvailable() {
         return available;
     }
+
 
     //    int getSessionID(){
 //        return sessionID;
