@@ -9,8 +9,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 
-//WARNING SESSION IDS ARE NOT MATCHING!!!!!
-//WARNING REMEMBER TO APPEAR ONLINE AFTER CHAT IS COMPLETE
 
 public class TcpServer {
     ServerSocket server;
@@ -19,7 +17,7 @@ public class TcpServer {
     PrintWriter out;
     int clientIndex;
     static int session = 0;
-    //String is other client, the map is all sessions of chats we have had
+    //String is other client, the map is all sessions of chats we have had, identified by sessionID
     //HashMap<String, HashMap<Integer, chatSession>> chatHistory = new HashMap<>();
     HashMap<String, HashMap<Integer, chatSession>> chatHistory = new HashMap<>();
 
@@ -68,11 +66,6 @@ public class TcpServer {
                     messageOut = prepareOutMessage(data, messageOut, clientIndex);
                     out.println(messageOut);
 
-                    //****
-//					System.out.println("TCP disconnecting");
-//					client.close();
-//					server.close();
-//					break;
                 } else if (tokens[0].equals("CHAT_REQUEST")) {
                     rec = tokens[1]; //recipient
 
@@ -128,15 +121,33 @@ public class TcpServer {
                             break;
                         }
                         //what we are sending
-                        chatHistory.get(otherClient).get(Main.clientObjects.get(clientID).sessionID).addMessage(messageIn,clientID);
+                        //if we have entry for other client
+                        if(chatHistory.containsKey(otherClient)){
+                            //if we have entry in hashmap for other client message sessions
+                            if(chatHistory.get(otherClient).containsKey(Main.clientObjects.get(clientID).sessionID)){
+                                chatHistory.get(otherClient).get(Main.clientObjects.get(clientID).sessionID).addMessage(messageIn, clientID);
+                            }
+                            else{
+                                chatHistory.get(otherClient).put(Main.clientObjects.get(clientID).sessionID,
+                                        new chatSession(Main.clientObjects.get(clientID).sessionID, clientID, otherClient));
+                                chatHistory.get(otherClient).get(Main.clientObjects.get(clientID).sessionID).addMessage(messageIn, clientID);
+                            }
+                        }else{
+                            chatHistory.put(otherClient, new HashMap<Integer, chatSession>());
+                            chatHistory.get(otherClient).put(Main.clientObjects.get(clientID).sessionID,
+                                    new chatSession(Main.clientObjects.get(clientID).sessionID, clientID, otherClient));
+                            chatHistory.get(otherClient).get(Main.clientObjects.get(clientID).sessionID).addMessage(messageIn, clientID);
+                        }
+                        //chatHistory.get(otherClient).get(Main.clientObjects.get(clientID).sessionID).addMessage(messageIn,clientID);
                         sendMessage(messageIn, Main.clientObjects.get(Main.clientIDs.get(clientIndex)).partner, clientID);
                     }
 
 
                 }
-                //WHEN ENDING CHAT REMEMBER TO MAKE CLIENT AVAILABLE AGAIN
-                else if (tokens[0].equals("END")) {
+                else if (tokens[0].equals("LOG_OFF")) {
                     System.out.println("CLIENT ON PORT " + tcp + " IS DISCONNECTING");
+                    client.close();
+                    server.close();
                 }
                 else if (tokens[0].equals("HISTORY_REQ")) {
                     //request history

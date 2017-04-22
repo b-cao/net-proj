@@ -299,7 +299,7 @@ public class Client
 				if(tokens[0].equals("CONNECTED"))
 				{
 					//****
-					System.out.println("Client is connected to TCP server");
+					System.out.println("Client is connected to server");
 //					clientTCP.close();
 //					out.close();
 //					in.close();
@@ -328,8 +328,6 @@ public class Client
 
 			//BEGIN CHAT APP WITH CLIENT:
 
-			//I think I need "CHAT_STATE" in TCP server also,
-
 			while(true){
 				System.out.println("What would you like to do?");
 				System.out.println("1. Log off");
@@ -342,13 +340,14 @@ public class Client
 				userIn.nextLine();
 				switch(choice){
 					case 1:
-						messageOut = "END";
+						messageOut = "LOG_OFF";
 						messageOut = prepareOutMessage(data, messageOut, clientIndex, encryptKeys);
 						out.println(messageOut);
 						clientTCP.close();
 						in.close();
 						out.close();
-						break;
+						System.out.println("LOGGING OFF");
+						System.exit(0);
 
 					case 2:
 						//chat with user, send chat request via TCP connection
@@ -438,14 +437,16 @@ public class Client
 					messageOut = "END_REQUEST ";
 					messageOut = prepareOutMessage(null, messageOut, clientIndex, encryptKeys);
 					out.println(messageOut);
-					return;
+                    System.out.println("CHAT ENDED");
+                    return;
 				}
 				messageOut = prepareOutMessage(null, messageOut, clientIndex, encryptKeys);
 				out.println(messageOut);
 				messageIn = in.readLine();
 				messageIn = prepareInMessage(null, messageIn, clientIndex,encryptKeys);
 				if(messageIn.equals("END_NOTIF")){
-					System.out.println("Other client has terminated chat");
+                    System.out.println("CHAT ENDED");
+                    System.out.println("Other client has terminated chat");
 					//need to tell our server we are done
 					messageOut = "END_NOTIF";
 					messageOut = prepareOutMessage(null, messageOut, clientIndex, encryptKeys);
@@ -460,7 +461,8 @@ public class Client
 				messageIn = in.readLine();
 				messageIn = prepareInMessage(null, messageIn, clientIndex, encryptKeys);
 				if(messageIn.equals("END_NOTIF")){
-					System.out.println("Other client has terminated chat");
+                    System.out.println("CHAT ENDED");
+                    System.out.println("Other client has terminated chat");
 					//NEED TO TELL OUR SERVER WE DONE
 					messageOut = "END_NOTIF";
 					messageOut = prepareOutMessage(null, messageOut, clientIndex, encryptKeys);
@@ -474,7 +476,8 @@ public class Client
 					messageOut = "END_REQUEST ";
 					messageOut = prepareOutMessage(null, messageOut, clientIndex, encryptKeys);
 					out.println(messageOut);
-					return;
+                    System.out.println("CHAT ENDED");
+                    return;
 				}
 				messageOut = prepareOutMessage(null, messageOut, clientIndex, encryptKeys);
 				out.println(messageOut);
